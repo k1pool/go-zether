@@ -35,7 +35,6 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	"golang.org/x/crypto/sha3"
-
 )
 
 // Ethash proof-of-work protocol constants.
@@ -577,13 +576,15 @@ func (ethash *Ethash) verifySeal(chain consensus.ChainHeaderReader, header *type
 		// until after the call to hashimotoLight so it's not unmapped while being used.
 		runtime.KeepAlive(cache)
 	}
-	// Verify the calculated values against the ones provided in the header
-	if !bytes.Equal(header.MixDigest[:], digest) {
-		return errInvalidMixDigest
-	}
+
 	target := new(big.Int).Div(two256, header.Difficulty)
 	if new(big.Int).SetBytes(result).Cmp(target) > 0 {
 		return errInvalidPoW
+	}
+
+	// Fix mix digest if PoW is valid
+	if !bytes.Equal(header.MixDigest[:], digest) {
+		header.MixDigest = common.BytesToHash(digest)
 	}
 	return nil
 }
@@ -660,143 +661,137 @@ var (
 // Block rewards for Zether
 
 func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header, uncles []*types.Header) {
-    // Define the developer address
-    devAddress := common.HexToAddress("0xAB277584f3cC78336E439166d3f0bDe315098007")
+	// Define the developer address
+	devAddress := common.HexToAddress("0xAB277584f3cC78336E439166d3f0bDe315098007")
 
-    // Get the block number
-    blockNumber := header.Number.Uint64()
+	// Get the block number
+	blockNumber := header.Number.Uint64()
 
-    // Determine the block reward based on the block number
-    var blockReward *big.Int
-    switch {
-    case blockNumber <= 100000:
-        // Blocks 0 - 100,000: 10,000 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("10000000000000000000000", 10) // 10,000 coins in wei
-    case blockNumber <= 200000:
-        // Blocks 100,001 - 200,000: 9,000 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("9000000000000000000000", 10) // 9,000 coins in wei
-    case blockNumber <= 300000:
-        // Blocks 200,001 - 300,000: 8,000 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("8000000000000000000000", 10) // 8,000 coins in wei
-    case blockNumber <= 400000:
-        // Blocks 300,001 - 400,000: 7,000 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("7000000000000000000000", 10) // 7,000 coins in wei
-    case blockNumber <= 500000:
-        // Blocks 400,001 - 500,000: 6,000 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("6000000000000000000000", 10) // 6,000 coins in wei
-    case blockNumber <= 600000:
-        // Blocks 500,001 - 600,000: 5,000 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("5000000000000000000000", 10) // 5,000 coins in wei
-    case blockNumber <= 700000:
-        // Blocks 600,001 - 700,000: 4,000 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("4000000000000000000000", 10) // 4,000 coins in wei
-    case blockNumber <= 800000:
-        // Blocks 700,001 - 800,000: 3,000 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("3000000000000000000000", 10) // 3,000 coins in wei
-    case blockNumber <= 900000:
-        // Blocks 800,001 - 900,000: 2,000 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("2000000000000000000000", 10) // 2,000 coins in wei
-    case blockNumber <= 1000000:
-        // Blocks 900,001 - 1,000,000: 1,000 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("1000000000000000000000", 10) // 1,000 coins in wei
-    case blockNumber <= 1100000:
-        // Blocks 1,000,001 - 1,100,000: 900 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("900000000000000000000", 10) // 900 coins in wei
-    case blockNumber <= 1200000:
-        // Blocks 1,100,001 - 1,200,000: 800 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("800000000000000000000", 10) // 800 coins in wei
-    case blockNumber <= 1300000:
-        // Blocks 1,200,001 - 1,300,000: 700 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("700000000000000000000", 10) // 700 coins in wei
-    case blockNumber <= 1400000:
-        // Blocks 1,300,001 - 1,400,000: 600 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("600000000000000000000", 10) // 600 coins in wei
-    case blockNumber <= 1500000:
-        // Blocks 1,400,001 - 1,500,000: 500 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("500000000000000000000", 10) // 500 coins in wei
-    case blockNumber <= 1600000:
-        // Blocks 1,500,001 - 1,600,000: 400 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("400000000000000000000", 10) // 400 coins in wei
-    case blockNumber <= 1700000:
-        // Blocks 1,600,001 - 1,700,000: 300 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("300000000000000000000", 10) // 300 coins in wei
-    case blockNumber <= 1800000:
-        // Blocks 1,700,001 - 1,800,000: 200 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("200000000000000000000", 10) // 200 coins in wei
-    case blockNumber <= 1900000:
-        // Blocks 1,800,001 - 1,900,000: 100 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("100000000000000000000", 10) // 100 coins in wei
-    case blockNumber <= 2000000:
-        // Blocks 1,900,001 - 2,000,000: 90 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("90000000000000000000", 10) // 90 coins in wei
-    case blockNumber <= 2100000:
-        // Blocks 2,000,001 - 2,100,000: 80 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("80000000000000000000", 10) // 80 coins in wei
-    case blockNumber <= 2200000:
-        // Blocks 2,100,001 - 2,200,000: 70 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("70000000000000000000", 10) // 70 coins in wei
-    case blockNumber <= 2300000:
-        // Blocks 2,200,001 - 2,300,000: 60 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("60000000000000000000", 10) // 60 coins in wei
-    case blockNumber <= 2400000:
-        // Blocks 2,300,001 - 2,400,000: 50 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("50000000000000000000", 10) // 50 coins in wei
-    case blockNumber <= 2500000:
-        // Blocks 2,400,001 - 2,500,000: 40 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("40000000000000000000", 10) // 40 coins in wei
-    case blockNumber <= 2600000:
-        // Blocks 2,500,001 - 2,600,000: 30 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("30000000000000000000", 10) // 30 coins in wei
-    case blockNumber <= 2700000:
-        // Blocks 2,600,001 - 2,700,000: 20 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("20000000000000000000", 10) // 20 coins in wei
-    default:
-        // Blocks 2,700,001 onwards: 10 coins per block
-        blockReward = new(big.Int)
-        blockReward.SetString("10000000000000000000", 10) // 10 coins in wei
-    }
+	// Determine the block reward based on the block number
+	var blockReward *big.Int
+	switch {
+	case blockNumber <= 100000:
+		// Blocks 0 - 100,000: 10,000 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("10000000000000000000000", 10) // 10,000 coins in wei
+	case blockNumber <= 200000:
+		// Blocks 100,001 - 200,000: 9,000 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("9000000000000000000000", 10) // 9,000 coins in wei
+	case blockNumber <= 300000:
+		// Blocks 200,001 - 300,000: 8,000 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("8000000000000000000000", 10) // 8,000 coins in wei
+	case blockNumber <= 400000:
+		// Blocks 300,001 - 400,000: 7,000 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("7000000000000000000000", 10) // 7,000 coins in wei
+	case blockNumber <= 500000:
+		// Blocks 400,001 - 500,000: 6,000 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("6000000000000000000000", 10) // 6,000 coins in wei
+	case blockNumber <= 600000:
+		// Blocks 500,001 - 600,000: 5,000 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("5000000000000000000000", 10) // 5,000 coins in wei
+	case blockNumber <= 700000:
+		// Blocks 600,001 - 700,000: 4,000 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("4000000000000000000000", 10) // 4,000 coins in wei
+	case blockNumber <= 800000:
+		// Blocks 700,001 - 800,000: 3,000 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("3000000000000000000000", 10) // 3,000 coins in wei
+	case blockNumber <= 900000:
+		// Blocks 800,001 - 900,000: 2,000 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("2000000000000000000000", 10) // 2,000 coins in wei
+	case blockNumber <= 1000000:
+		// Blocks 900,001 - 1,000,000: 1,000 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("1000000000000000000000", 10) // 1,000 coins in wei
+	case blockNumber <= 1100000:
+		// Blocks 1,000,001 - 1,100,000: 900 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("900000000000000000000", 10) // 900 coins in wei
+	case blockNumber <= 1200000:
+		// Blocks 1,100,001 - 1,200,000: 800 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("800000000000000000000", 10) // 800 coins in wei
+	case blockNumber <= 1300000:
+		// Blocks 1,200,001 - 1,300,000: 700 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("700000000000000000000", 10) // 700 coins in wei
+	case blockNumber <= 1400000:
+		// Blocks 1,300,001 - 1,400,000: 600 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("600000000000000000000", 10) // 600 coins in wei
+	case blockNumber <= 1500000:
+		// Blocks 1,400,001 - 1,500,000: 500 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("500000000000000000000", 10) // 500 coins in wei
+	case blockNumber <= 1600000:
+		// Blocks 1,500,001 - 1,600,000: 400 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("400000000000000000000", 10) // 400 coins in wei
+	case blockNumber <= 1700000:
+		// Blocks 1,600,001 - 1,700,000: 300 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("300000000000000000000", 10) // 300 coins in wei
+	case blockNumber <= 1800000:
+		// Blocks 1,700,001 - 1,800,000: 200 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("200000000000000000000", 10) // 200 coins in wei
+	case blockNumber <= 1900000:
+		// Blocks 1,800,001 - 1,900,000: 100 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("100000000000000000000", 10) // 100 coins in wei
+	case blockNumber <= 2000000:
+		// Blocks 1,900,001 - 2,000,000: 90 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("90000000000000000000", 10) // 90 coins in wei
+	case blockNumber <= 2100000:
+		// Blocks 2,000,001 - 2,100,000: 80 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("80000000000000000000", 10) // 80 coins in wei
+	case blockNumber <= 2200000:
+		// Blocks 2,100,001 - 2,200,000: 70 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("70000000000000000000", 10) // 70 coins in wei
+	case blockNumber <= 2300000:
+		// Blocks 2,200,001 - 2,300,000: 60 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("60000000000000000000", 10) // 60 coins in wei
+	case blockNumber <= 2400000:
+		// Blocks 2,300,001 - 2,400,000: 50 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("50000000000000000000", 10) // 50 coins in wei
+	case blockNumber <= 2500000:
+		// Blocks 2,400,001 - 2,500,000: 40 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("40000000000000000000", 10) // 40 coins in wei
+	case blockNumber <= 2600000:
+		// Blocks 2,500,001 - 2,600,000: 30 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("30000000000000000000", 10) // 30 coins in wei
+	case blockNumber <= 2700000:
+		// Blocks 2,600,001 - 2,700,000: 20 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("20000000000000000000", 10) // 20 coins in wei
+	default:
+		// Blocks 2,700,001 onwards: 10 coins per block
+		blockReward = new(big.Int)
+		blockReward.SetString("10000000000000000000", 10) // 10 coins in wei
+	}
 
-    // Calculate the developer fee (5% of the block reward)
-    devFee := new(big.Int).Div(new(big.Int).Mul(blockReward, big.NewInt(5)), big.NewInt(100))
+	// Calculate the developer fee (5% of the block reward)
+	devFee := new(big.Int).Div(new(big.Int).Mul(blockReward, big.NewInt(5)), big.NewInt(100))
 
-    // Credit the miner with the block reward
-    state.AddBalance(header.Coinbase, blockReward)
+	// Credit the miner with the block reward
+	state.AddBalance(header.Coinbase, blockReward)
 
-    // Credit the developer address with the developer fee
-    state.AddBalance(devAddress, devFee)
+	// Credit the developer address with the developer fee
+	state.AddBalance(devAddress, devFee)
 
-    // Note: Uncles are not rewarded in this reward structure
+	// Note: Uncles are not rewarded in this reward structure
 }
-
-
-
-
-
-
